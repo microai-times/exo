@@ -1,0 +1,7 @@
+aiohttp
+aiohttp_cors
+pillow
+numpy
+mlx
+mlx-lm
+bs4

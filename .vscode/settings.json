@@ -1,0 +1,17 @@
+{
+  "files.exclude": {
+    ".conda": true,
+    ".venv": true,
+    ".ipynb_checkpoints": true,
+    "**/__pycache__": true,
+  },
+  "python.analysis.extraPaths": [
+    "${workspaceFolder}"
+  ],
+  "python.autoComplete.extraPaths": [
+    "${workspaceFolder}"
+  ],
+  "terminal.integrated.env.linux": {
+    "PYTHONPATH": "${workspaceFolder}"
+  }
+}
