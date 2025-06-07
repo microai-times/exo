@@ -4,16 +4,15 @@ import asyncio
 import uuid
 import time
 import traceback
-from typing import List, Dict, Optional, Tuple, Union, Set
+from typing import List, Dict, Optional, Tuple
 from exo.networking import Discovery, PeerHandle, Server
-from exo.inference.inference_engine import InferenceEngine, Shard
+from exo.inference.inference_engine import InferenceEngine, Shard, get_inference_engine
 from exo.topology.topology import Topology
 from exo.topology.device_capabilities import (
     device_capabilities,
     UNKNOWN_DEVICE_CAPABILITIES,
 )
 from exo.topology.partitioning_strategy import (
-    Partition,
     PartitioningStrategy,
     map_partitions_to_shards,
 )
@@ -21,7 +20,6 @@ from exo import DEBUG
 from exo.helpers import AsyncCallbackSystem
 from exo.viz.topology_viz import TopologyViz
 from exo.download.download_progress import RepoProgressEvent
-from exo.inference.inference_engine import get_inference_engine, InferenceEngine
 from exo.download.shard_download import ShardDownloader
 
 
@@ -82,7 +80,7 @@ class Node:
             status_data = json.loads(opaque_status)
             status_type = status_data.get("type", "")
             if status_type == "supported_inference_engines":
-                node_id = status_data.get("node_id")
+                # node_id = status_data.get("node_id")
                 engines = status_data.get("engines", [])
                 self.topology_inference_engines_pool.append(engines)
             elif status_type == "node_status":
@@ -246,9 +244,7 @@ class Node:
             )
         )
         start_time = time.perf_counter_ns()
-        resp = await self._process_prompt(
-            base_shard, prompt, request_id, inference_state
-        )
+        await self._process_prompt(base_shard, prompt, request_id, inference_state)
         end_time = time.perf_counter_ns()
         elapsed_time_ns = end_time - start_time
         asyncio.create_task(
@@ -292,16 +288,14 @@ class Node:
                     f"[{request_id}] forwarding to next shard: {base_shard=} {shard=} {prompt=}"
                 )
             self.outstanding_requests[request_id] = "waiting"
-            resp = await self.forward_prompt(
-                shard, prompt, request_id, 0, inference_state
-            )
+            await self.forward_prompt(shard, prompt, request_id, 0, inference_state)
             return None
         else:
             self.outstanding_requests[request_id] = "processing"
             result, inference_state = await self.inference_engine.infer_prompt(
                 request_id, shard, prompt, inference_state
             )
-            ret = await self.process_inference_result(
+            await self.process_inference_result(
                 shard, result, request_id, inference_state
             )
             return result
@@ -500,7 +494,7 @@ class Node:
     ) -> Optional[np.ndarray]:
         shard = self.get_current_shard(base_shard)
         start_time = time.perf_counter_ns()
-        resp = await self._process_tensor(shard, tensor, request_id, inference_state)
+        await self._process_tensor(shard, tensor, request_id, inference_state)
         end_time = time.perf_counter_ns()
         elapsed_time_ns = end_time - start_time
         if DEBUG >= 2:
